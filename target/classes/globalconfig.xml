@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd">
+    <smtp:gmail-connector name="Gmail" contentType="text/plain" fromAddress="sadiktech@gmail.com" replyToAddresses="************@gmail.com" subject="test value mail" validateConnections="true" doc:name="Gmail"/>
+    <choice-exception-strategy name="choice_Exception_Strategy">
+        <catch-exception-strategy when="#[exception.causedBy(java.util.concurrent.TimeoutException)]" doc:name="Catch Exception">
+            <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+            <flow-ref name="mail_notification_Flow" doc:name="Mail flow Reference"/>
+            <set-payload value="Exception in http connector" doc:name="Set Payload"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy when="#[exception.causedBy(java.util.concurrent.TimeoutException)]" doc:name="DB Exception">
+            <logger level="INFO" doc:name="Logger"/>
+        </catch-exception-strategy>
+    </choice-exception-strategy>
+    <rollback-exception-strategy maxRedeliveryAttempts="3" name="rollback_Exception_Strategy">
+        <logger message="&quot;This is rollback exception &quot;" level="INFO" doc:name="Logger"/>
+        <set-payload value="There is exception in JMS connection" doc:name="Set Payload"/>
+        <on-redelivery-attempts-exceeded>
+            <flow-ref name="mail_notification_Flow" doc:name="Mail flow Reference"/>
+        </on-redelivery-attempts-exceeded>
+    </rollback-exception-strategy>
+    <sub-flow name="mail_notification_Flow">
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="sadiktech@gmail.com" password="******" connector-ref="Gmail" to="****@gmail.com" from="sadiktech@gmail.com" subject="TestMail" responseTimeout="10000" doc:name="SMTP"/>
+    </sub-flow>
+</mule>
